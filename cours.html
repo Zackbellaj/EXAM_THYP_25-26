@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liste des Cours - Master</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .course-card { margin-bottom: 20px; transition: transform 0.2s; }
+        .course-card:hover { transform: scale(1.02); }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="container py-5">
+    <h1 class="mb-4 text-center">Catalogue des Cours</h1>
+    
+    <div class="row mb-4">
+        <div class="col-md-6 offset-md-3">
+            <input type="text" id="filterInput" class="form-control" placeholder="Filtrer les cours..." onkeyup="filterCours()">
+        </div>
+    </div>
+
+    <div id="cours-container" class="row">
+        <div class="text-center">Chargement des cours...</div>
+    </div>
+</div>
+
+<script>
+    // Configuration
+    const ENDPOINT_API = "http://localhost/omeka-s/api/items"; 
+    // ID de la classe 'Course' dans votre Omeka (à vérifier via l'API : /api/resource_classes)
+    const CLASS_ID_COURSE = 1; // CHANGEZ CECI selon votre installation
+
+    // 1. Récupérer la liste des cours (getCours)
+    async function getCours() {
+        try {
+            // On demande les items qui sont de la classe "Course"
+            const response = await fetch(`${ENDPOINT_API}?resource_class_id=${CLASS_ID_COURSE}`);
+            const data = await response.json();
+            showCours(data);
+        } catch (error) {
+            console.error("Erreur:", error);
+            document.getElementById('cours-container').innerHTML = "<p class='text-danger'>Erreur de chargement.</p>";
+        }
+    }
+
+    // 2. Afficher la liste des cours (showCours)
+    function showCours(coursList) {
+        const container = document.getElementById('cours-container');
+        container.innerHTML = "";
+
+        coursList.forEach(cours => {
+            // Récupération sécurisée des propriétés (adapter les termes selon votre vocabulaire exact)
+            // Omeka retourne souvent un tableau sous le préfixe. Ex: "dcterms:title": [...]
+            
+            // Titre
+            let title = "Sans titre";
+            if(cours['dcterms:title']) title = cours['dcterms:title'][0]['@value'];
+            else if(cours['o:title']) title = cours['o:title'];
+
+            // ID
+            let id = cours['o:id'];
+
+            // Liste étudiants (Simulé ici car dépend de la relation inverse complexe)
+            let students = "Voir détails"; 
+            
+            const card = `
+                <div class="col-12 col-md-6 col-lg-4 course-item">
+                    <div class="card course-card shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary">${title}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">ID: ${id}</h6>
+                            <p class="card-text">Étudiants inscrits : <span class="badge bg-secondary">Inconnu</span></p>
+                            <button class="btn btn-sm btn-outline-info" onclick="alert('Détails pour le cours ${id}')">Voir plus</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML += card;
+        });
+    }
+
+    // 3. Filtrer la liste (filterCours)
+    function filterCours() {
+        const input = document.getElementById('filterInput');
+        const filter = input.value.toUpperCase();
+        const cards = document.getElementsByClassName('course-item');
+
+        for (let i = 0; i < cards.length; i++) {
+            const title = cards[i].querySelector(".card-title").innerText;
+            if (title.toUpperCase().indexOf(filter) > -1) {
+                cards[i].style.display = "";
+            } else {
+                cards[i].style.display = "none";
+            }
+        }
+    }
+
+    // Lancer au chargement
+    window.onload = getCours;
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
