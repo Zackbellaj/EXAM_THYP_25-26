@@ -27,15 +27,14 @@
 </div>
 
 <script>
-    // Configuration
-    const ENDPOINT_API = "http://localhost/omeka-s/api/items"; 
-    // ID de la classe 'Course' dans votre Omeka (à vérifier via l'API : /api/resource_classes)
-    const CLASS_ID_COURSE = 1; // CHANGEZ CECI selon votre installation
 
-    // 1. Récupérer la liste des cours (getCours)
+    const ENDPOINT_API = "http://localhost/omeka-s/api/items"; 
+
+    const CLASS_ID_COURSE = 1; 
+
+
     async function getCours() {
         try {
-            // On demande les items qui sont de la classe "Course"
             const response = await fetch(`${ENDPOINT_API}?resource_class_id=${CLASS_ID_COURSE}`);
             const data = await response.json();
             showCours(data);
@@ -45,24 +44,17 @@
         }
     }
 
-    // 2. Afficher la liste des cours (showCours)
     function showCours(coursList) {
         const container = document.getElementById('cours-container');
         container.innerHTML = "";
 
         coursList.forEach(cours => {
-            // Récupération sécurisée des propriétés (adapter les termes selon votre vocabulaire exact)
-            // Omeka retourne souvent un tableau sous le préfixe. Ex: "dcterms:title": [...]
-            
-            // Titre
+
             let title = "Sans titre";
             if(cours['dcterms:title']) title = cours['dcterms:title'][0]['@value'];
             else if(cours['o:title']) title = cours['o:title'];
-
-            // ID
             let id = cours['o:id'];
 
-            // Liste étudiants (Simulé ici car dépend de la relation inverse complexe)
             let students = "Voir détails"; 
             
             const card = `
@@ -81,7 +73,6 @@
         });
     }
 
-    // 3. Filtrer la liste (filterCours)
     function filterCours() {
         const input = document.getElementById('filterInput');
         const filter = input.value.toUpperCase();
@@ -97,7 +88,6 @@
         }
     }
 
-    // Lancer au chargement
     window.onload = getCours;
 </script>
 
