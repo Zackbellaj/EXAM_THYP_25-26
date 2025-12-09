@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestion des Évaluations</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="p-4">
+
+<div class="container">
+    <h2>Saisir une évaluation</h2>
+    <form id="evalForm" onsubmit="event.preventDefault(); setEval();" class="mb-5 border p-4 rounded">
+        <div class="mb-3">
+            <label class="form-label">ID Étudiant (Omeka ID)</label>
+            <input type="number" id="studentId" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">ID Cours/Eval (Omeka ID)</label>
+            <input type="number" id="courseId" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Note</label>
+            <input type="number" id="score" class="form-control" step="0.5" required>
+        </div>
+        <button type="submit" class="btn btn-success">Enregistrer</button>
+    </form>
+
+    <hr>
+    <h3>Liste des notes</h3>
+    <table class="table table-striped">
+        <thead><tr><th>ID Eval</th><th>Note</th><th>Étudiant (ID)</th><th>Cours (ID)</th></tr></thead>
+        <tbody id="evalTableBody"></tbody>
+    </table>
+</div>
+
+<script>
+    const API_URL = "http://localhost/omeka-s/api/items";
+    
+    const KEY_IDENTITY = "Gc6bWQ7GoHSJXMItGy7sEYznwAaAK7ju";
+    const KEY_CREDENTIAL = "owhblovm9MzROFdMcmK07DjuZwF4xKSJ";
+    
+    const PROP_ID_SCORE = 120; // Exemple
+    const PROP_ID_STUDENT = 121; // Exemple
+    const PROP_ID_COURSE = 122; // Exemple
+    const CLASS_ID_GRADE = 45; // Exemple
+
+    // 1. Enregistrer une évaluation (setEval)
+    async function setEval() {
+        const studentId = document.getElementById('studentId').value;
+        const courseId = document.getElementById('courseId').value;
+        const score = document.getElementById('score').value;
+
+        // Construction du payload Omeka S
+        const data = {
+            "o:resource_class": { "o:id": CLASS_ID_GRADE },
+            "o:resource_template": { "o:id": 2 }, // ID du template Note
+            // Propriété Note
+            [`property_id:${PROP_ID_SCORE}`]: [ 
+                { "type": "literal", "property_id": PROP_ID_SCORE, "@value": score } 
+            ],
+            // Relation vers Étudiant (type resource:item)
+            [`property_id:${PROP_ID_STUDENT}`]: [ 
+                { "type": "resource:item", "property_id": PROP_ID_STUDENT, "value_resource_id": studentId } 
+            ],
+            // Relation vers Cours
+            [`property_id:${PROP_ID_COURSE}`]: [ 
+                { "type": "resource:item", "property_id": PROP_ID_COURSE, "value_resource_id": courseId } 
+            ]
+        };
+
+        try {
+            const response = await fetch(`${API_URL}?key_identity=${KEY_IDENTITY}&key_credential=${KEY_CREDENTIAL}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            if(response.ok) {
+                alert("Note enregistrée !");
+                showEval(); // Rafraichir
+            } else {
+                alert("Erreur lors de l'enregistrement");
+                console.log(await response.json());
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    // 2. Afficher les évaluations (showEval)
+    async function showEval() {
+        // Fetch items that are Grades
+        const response = await fetch(`${API_URL}?resource_class_id=${CLASS_ID_GRADE}`);
+        const evals = await response.json();
+        
+        const tbody = document.getElementById('evalTableBody');
+        tbody.innerHTML = "";
+
+        evals.forEach(ev => {
+            // Logique d'extraction similaire à showCours
+            // Attention: il faut parser les propriétés spécifiques
+            let score = "N/A";
+            // Exemple d'accès générique si on connait le terme
+            if(ev['univ:scoreValue']) score = ev['univ:scoreValue'][0]['@value'];
+            
+            let row = `
+                <tr>
+                    <td>${ev['o:id']}</td>
+                    <td>${score}</td>
+                    <td><a href="#">Voir Étudiant</a></td>
+                    <td><a href="#">Voir Cours</a></td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    // Init
+    showEval();
+</script>
+</body>
+</html>
