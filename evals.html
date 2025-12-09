@@ -59,10 +59,8 @@
 </div>
 
 <script>
-    // --- 1. CONFIGURATION API ---
     const API_URL = "http://localhost/omeka-s/api/items";
     
-    // Clés API (Issues de votre fichier evals.html précédent)
     const KEY_IDENTITY = "Gc6bWQ7GoHSJXMItGy7sEYznwAaAK7ju";
     const KEY_CREDENTIAL = "owhblovm9MzROFdMcmK07DjuZwF4xKSJ";
     
@@ -75,7 +73,7 @@
     const PROP_ID_STUDENT = 220;    // Propriété "univ:obtainedBy"
     const PROP_ID_EVAL = 221;       // Propriété "univ:forEvaluation"
 
-    // --- FONCTION 1 : ENREGISTRER UNE NOTE (POST) ---
+
     async function setEval() {
         const studentId = document.getElementById('studentId').value;
         const evalId = document.getElementById('evalId').value;
