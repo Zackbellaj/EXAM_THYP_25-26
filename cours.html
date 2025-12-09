@@ -46,7 +46,6 @@
 
     async function fetchCourses() {
         try {
-
             const response = await fetch(`${API_URL}`); 
             if (!response.ok) throw new Error("Erreur réseau");
             
@@ -54,19 +53,32 @@
             const container = document.getElementById('courses-container');
             document.getElementById('loading').style.display = 'none';
 
+            // Filtrage des cours
             const courses = items.filter(item => {
                 return item['@type'] && item['@type'].includes(COURSE_CLASS_TERM);
             });
 
             if (courses.length === 0) {
-                container.innerHTML = '<div class="col-12"><p class="alert alert-warning">Aucun cours trouvé dans la base de données.</p></div>';
+                container.innerHTML = '<div class="col-12"><p class="alert alert-warning">Aucun cours trouvé.</p></div>';
                 return;
             }
 
             courses.forEach(course => {
-                const title = course['dcterms:title'] ? course['dcterms:title'][0]['@value'] : 'Sans titre';
-                const description = course['dcterms:description'] ? course['dcterms:description'][0]['@value'] : 'Aucune description disponible.';
-                const code = course['univ:hasCode'] ? course['univ:hasCode'][0]['@value'] : 'N/A';
+                // --- ZONE CORRIGÉE : LECTURE SÉCURISÉE DES DONNÉES ---
+                // On vérifie si la propriété existe ET si elle contient des données avant de lire [0]
+                
+                const title = (course['dcterms:title'] && course['dcterms:title'].length > 0) 
+                              ? course['dcterms:title'][0]['@value'] 
+                              : 'Sans titre';
+
+                const description = (course['dcterms:description'] && course['dcterms:description'].length > 0) 
+                                    ? course['dcterms:description'][0]['@value'] 
+                                    : 'Aucune description.';
+
+                const code = (course['univ:hasCode'] && course['univ:hasCode'].length > 0) 
+                             ? course['univ:hasCode'][0]['@value'] 
+                             : 'N/A';
+                // -----------------------------------------------------
 
                 const cardHtml = `
                     <div class="col-md-6 col-lg-4">
@@ -89,7 +101,7 @@
 
         } catch (error) {
             console.error('Erreur:', error);
-            document.getElementById('loading').innerHTML = `<p class="text-danger">Impossible de charger les cours. Vérifiez l'API.</p>`;
+            document.getElementById('loading').innerHTML = `<p class="text-danger">Erreur JS: ${error.message}</p>`;
         }
     }
 </script>
