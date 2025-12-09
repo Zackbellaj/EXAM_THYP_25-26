@@ -6,91 +6,92 @@
     <title>Liste des Cours - Master</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        .course-card { margin-bottom: 20px; transition: transform 0.2s; }
-        .course-card:hover { transform: scale(1.02); }
+        .course-card { transition: transform 0.2s; }
+        .course-card:hover { transform: translateY(-5px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .course-code { font-weight: bold; color: #0d6efd; }
     </style>
 </head>
 <body class="bg-light">
 
-<div class="container py-5">
-    <h1 class="mb-4 text-center">Catalogue des Cours</h1>
-    
-    <div class="row mb-4">
-        <div class="col-md-6 offset-md-3">
-            <input type="text" id="filterInput" class="form-control" placeholder="Filtrer les cours..." onkeyup="filterCours()">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="#">Gestion Master</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item"><a class="nav-link active" href="cours.html">Cours</a></li>
+                <li class="nav-item"><a class="nav-link" href="evals.html">Évaluations</a></li>
+            </ul>
         </div>
     </div>
+</nav>
 
-    <div id="cours-container" class="row">
-        <div class="text-center">Chargement des cours...</div>
+<div class="container">
+    <h1 class="mb-4">Unités d'Enseignement</h1>
+    <div id="loading" class="text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Chargement...</span>
+        </div>
     </div>
+    <div id="courses-container" class="row g-4">
+        </div>
 </div>
 
 <script>
+    const API_URL = 'http://localhost/omeka-s/api/items'; 
+    const COURSE_CLASS_TERM = 'univ:Course';
 
-    const ENDPOINT_API = "http://localhost/omeka-s/api/items"; 
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchCourses();
+    });
 
-    const CLASS_ID_COURSE = 1; 
-
-
-    async function getCours() {
+    async function fetchCourses() {
         try {
-            const response = await fetch(`${ENDPOINT_API}?resource_class_id=${CLASS_ID_COURSE}`);
-            const data = await response.json();
-            showCours(data);
-        } catch (error) {
-            console.error("Erreur:", error);
-            document.getElementById('cours-container').innerHTML = "<p class='text-danger'>Erreur de chargement.</p>";
-        }
-    }
 
-    function showCours(coursList) {
-        const container = document.getElementById('cours-container');
-        container.innerHTML = "";
-
-        coursList.forEach(cours => {
-
-            let title = "Sans titre";
-            if(cours['dcterms:title']) title = cours['dcterms:title'][0]['@value'];
-            else if(cours['o:title']) title = cours['o:title'];
-            let id = cours['o:id'];
-
-            let students = "Voir détails"; 
+            const response = await fetch(`${API_URL}`); 
+            if (!response.ok) throw new Error("Erreur réseau");
             
-            const card = `
-                <div class="col-12 col-md-6 col-lg-4 course-item">
-                    <div class="card course-card shadow-sm">
-                        <div class="card-body">
-                            <h5 class="card-title text-primary">${title}</h5>
-                            <h6 class="card-subtitle mb-2 text-muted">ID: ${id}</h6>
-                            <p class="card-text">Étudiants inscrits : <span class="badge bg-secondary">Inconnu</span></p>
-                            <button class="btn btn-sm btn-outline-info" onclick="alert('Détails pour le cours ${id}')">Voir plus</button>
+            const items = await response.json();
+            const container = document.getElementById('courses-container');
+            document.getElementById('loading').style.display = 'none';
+
+            const courses = items.filter(item => {
+                return item['@type'] && item['@type'].includes(COURSE_CLASS_TERM);
+            });
+
+            if (courses.length === 0) {
+                container.innerHTML = '<div class="col-12"><p class="alert alert-warning">Aucun cours trouvé dans la base de données.</p></div>';
+                return;
+            }
+
+            courses.forEach(course => {
+                const title = course['dcterms:title'] ? course['dcterms:title'][0]['@value'] : 'Sans titre';
+                const description = course['dcterms:description'] ? course['dcterms:description'][0]['@value'] : 'Aucune description disponible.';
+                const code = course['univ:hasCode'] ? course['univ:hasCode'][0]['@value'] : 'N/A';
+
+                const cardHtml = `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 course-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-secondary">${code}</span>
+                                </div>
+                                <h5 class="card-title text-primary">${title}</h5>
+                                <p class="card-text text-muted">${description}</p>
+                            </div>
+                            <div class="card-footer bg-transparent border-top-0">
+                                <a href="evals.html?course_id=${course['o:id']}" class="btn btn-outline-primary btn-sm w-100">Voir les évaluations</a>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
-            container.innerHTML += card;
-        });
-    }
+                `;
+                container.insertAdjacentHTML('beforeend', cardHtml);
+            });
 
-    function filterCours() {
-        const input = document.getElementById('filterInput');
-        const filter = input.value.toUpperCase();
-        const cards = document.getElementsByClassName('course-item');
-
-        for (let i = 0; i < cards.length; i++) {
-            const title = cards[i].querySelector(".card-title").innerText;
-            if (title.toUpperCase().indexOf(filter) > -1) {
-                cards[i].style.display = "";
-            } else {
-                cards[i].style.display = "none";
-            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            document.getElementById('loading').innerHTML = `<p class="text-danger">Impossible de charger les cours. Vérifiez l'API.</p>`;
         }
     }
-
-    window.onload = getCours;
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
